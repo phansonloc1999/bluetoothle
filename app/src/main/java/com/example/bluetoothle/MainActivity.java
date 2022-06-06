@@ -26,6 +26,7 @@ public class MainActivity extends AppCompatActivity {
     private static BluetoothLeScanner bluetoothLeScanner;
 
     private static Button quitBtn = null;
+    private static Button scanBtn = null;
 
     private boolean checkDevicePermission(String permission) {
         return ContextCompat.checkSelfPermission(this.getApplicationContext(), permission) ==
@@ -33,6 +34,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initFields() {
+        scanBtn = findViewById(R.id.scanBtn);
+        scanBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+                bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
+
+                if (bluetoothLeScanner != null) {
+                    Log.i("INFO", "Running bluetooth low energy scan!");
+                    bluetoothLeScanner.startScan(new ScanCallback() {
+                        public void onScanResult(int callbackType, ScanResult result) {
+                            Log.i("INFO", "Remote device name: " + result.getDevice().getName());
+                            Log.i("INFO", "Remote device UUID: " + result.getDevice().getUuids());
+                            Log.i("INFO", "Remote device address: " + result.getDevice().getAddress());
+                            Log.i("INFO", "Remote device bond state: " + result.getDevice().getBondState());
+                        }
+                    });
+                }
+                else Log.i("INFO", "Can not get bluetooth low energy scanner!");
+            }
+        });
+
         quitBtn = findViewById(R.id.quitBtn);
         quitBtn.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -54,27 +77,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
 
-        if (checkDevicePermission(Manifest.permission.BLUETOOTH) &&
+        if (!(checkDevicePermission(Manifest.permission.BLUETOOTH) &&
                 checkDevicePermission(Manifest.permission.BLUETOOTH_ADMIN) &&
-                        checkDevicePermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
-            // You can use the API that requires the permission.
-            BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-            bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
-
-            if (bluetoothLeScanner != null) {
-                Log.i("INFO", "Running bluetooth low energy scan!");
-                bluetoothLeScanner.startScan(new ScanCallback() {
-                    public void onScanResult(int callbackType, ScanResult result) {
-                        Log.i("INFO", "Remote device name: " + result.getDevice().getName());
-                        Log.i("INFO", "Remote device UUID: " + result.getDevice().getUuids());
-                        Log.i("INFO", "Remote device address: " + result.getDevice().getAddress());
-                        Log.i("INFO", "Remote device bond state: " + result.getDevice().getBondState());
-                    }
-                });
-            }
-            else Log.i("INFO", "Can not get bluetooth low energy scanner!");
-
-        } else {
+                        checkDevicePermission(Manifest.permission.ACCESS_FINE_LOCATION))) {
             // You can directly ask for the permission.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 requestPermissions(new String[] { Manifest.permission.ACCESS_FINE_LOCATION }, MY_REQUEST_CODE);
