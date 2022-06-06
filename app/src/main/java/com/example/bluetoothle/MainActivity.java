@@ -42,17 +42,17 @@ public class MainActivity extends AppCompatActivity {
                 bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
 
                 if (bluetoothLeScanner != null) {
-                    Log.i("INFO", "Running bluetooth low energy scan!");
+                    Log.i("App", "Running bluetooth low energy scan!");
                     bluetoothLeScanner.startScan(new ScanCallback() {
                         public void onScanResult(int callbackType, ScanResult result) {
-                            Log.i("INFO", "Remote device name: " + result.getDevice().getName());
-                            Log.i("INFO", "Remote device UUID: " + result.getDevice().getUuids());
-                            Log.i("INFO", "Remote device address: " + result.getDevice().getAddress());
-                            Log.i("INFO", "Remote device bond state: " + result.getDevice().getBondState());
+                            Log.i("App", "Remote device name: " + result.getDevice().getName());
+                            Log.i("App", "Remote device UUID: " + result.getDevice().getUuids());
+                            Log.i("App", "Remote device address: " + result.getDevice().getAddress());
+                            Log.i("App", "Remote device bond state: " + result.getDevice().getBondState());
                         }
                     });
                 }
-                else Log.i("INFO", "Can not get bluetooth low energy scanner!");
+                else Log.i("App", "Can not get bluetooth low energy scanner!");
             }
         });
 
