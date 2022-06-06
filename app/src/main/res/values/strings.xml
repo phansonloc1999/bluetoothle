@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">BluetoothLE</string>
+    <string name="scan_btn">Scan</string>
+    <string name="quit_btn">Quit</string>
+</resources>
