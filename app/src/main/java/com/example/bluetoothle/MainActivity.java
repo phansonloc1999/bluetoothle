@@ -15,7 +15,11 @@ import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ListView;
+
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
     private static final int MY_REQUEST_CODE = 1;
@@ -27,6 +31,9 @@ public class MainActivity extends AppCompatActivity {
 
     private static Button quitBtn = null;
     private static Button scanBtn = null;
+    private static ListView scanResultsListView = null;
+
+    private static ArrayList<MyScanResult> scanResultsList = new ArrayList<>();
 
     private boolean checkDevicePermission(String permission) {
         return ContextCompat.checkSelfPermission(this.getApplicationContext(), permission) ==
@@ -39,16 +46,20 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-                bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
+                if (bluetoothAdapter != null) {
+                    bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
+                }
+                else {
+                    Log.i("App", "Bluetooth adapter not found!");
+                    System.exit(1);
+                }
 
                 if (bluetoothLeScanner != null) {
                     Log.i("App", "Running bluetooth low energy scan!");
                     bluetoothLeScanner.startScan(new ScanCallback() {
+                        // Handle scan results
                         public void onScanResult(int callbackType, ScanResult result) {
                             Log.i("App", "Remote device name: " + result.getDevice().getName());
-                            Log.i("App", "Remote device UUID: " + result.getDevice().getUuids());
-                            Log.i("App", "Remote device address: " + result.getDevice().getAddress());
-                            Log.i("App", "Remote device bond state: " + result.getDevice().getBondState());
                         }
                     });
                 }
@@ -62,6 +73,16 @@ public class MainActivity extends AppCompatActivity {
                 System.exit(1);
             }
         });
+
+        MyScanResult testScanResult1 = new MyScanResult("Scan result 1");
+        MyScanResult testScanResult2 = new MyScanResult("Scan result 2");
+        MyScanResult testScanResult3 = new MyScanResult("Scan result 3");
+        MyScanResult[] scanResults = new MyScanResult[]{testScanResult1, testScanResult2, testScanResult3};
+        ArrayAdapter<MyScanResult> scanResultsArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, scanResults);
+
+        scanResultsListView = findViewById(R.id.scanResultsListView);
+        scanResultsListView.setAdapter(scanResultsArrayAdapter);
+
     }
 
     @Override
