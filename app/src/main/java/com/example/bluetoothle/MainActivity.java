@@ -6,13 +6,18 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.ParcelUuid;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -20,6 +25,8 @@ import android.widget.Button;
 import android.widget.ListView;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
     private static final int MY_REQUEST_CODE = 1;
@@ -44,8 +51,9 @@ public class MainActivity extends AppCompatActivity {
         scanBtn = findViewById(R.id.scanBtn);
         scanBtn.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
-                BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+            public void onClick(final View view) {
+                BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+                BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
                 if (bluetoothAdapter != null) {
                     bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
                 }
@@ -56,10 +64,16 @@ public class MainActivity extends AppCompatActivity {
 
                 if (bluetoothLeScanner != null) {
                     Log.i("App", "Running bluetooth low energy scan!");
+                    scanResultsList = new ArrayList<>();
                     bluetoothLeScanner.startScan(new ScanCallback() {
                         // Handle scan results
                         public void onScanResult(int callbackType, ScanResult result) {
-                            Log.i("App", "Remote device name: " + result.getDevice().getName());
+                            BluetoothDevice device = result.getDevice();
+                            scanResultsList.add(new MyScanResult(device.getAddress(), String.valueOf(result.getRssi()), device.getName(), device.getUuids()));
+                            MyScanResult[] scanResultsArr = scanResultsList.toArray(new MyScanResult[scanResultsList.size()]);
+                            ArrayAdapter<MyScanResult> scanResultsArrayAdapter =
+                                    new ArrayAdapter<>(view.getContext(), android.R.layout.simple_list_item_1, scanResultsArr);
+                            scanResultsListView.setAdapter(scanResultsArrayAdapter);
                         }
                     });
                 }
@@ -73,16 +87,7 @@ public class MainActivity extends AppCompatActivity {
                 System.exit(1);
             }
         });
-
-        MyScanResult testScanResult1 = new MyScanResult("Scan result 1");
-        MyScanResult testScanResult2 = new MyScanResult("Scan result 2");
-        MyScanResult testScanResult3 = new MyScanResult("Scan result 3");
-        MyScanResult[] scanResults = new MyScanResult[]{testScanResult1, testScanResult2, testScanResult3};
-        ArrayAdapter<MyScanResult> scanResultsArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, scanResults);
-
         scanResultsListView = findViewById(R.id.scanResultsListView);
-        scanResultsListView.setAdapter(scanResultsArrayAdapter);
-
     }
 
     @Override
@@ -92,7 +97,6 @@ public class MainActivity extends AppCompatActivity {
 
         initFields();
     }
-
 
     @Override
     protected void onStart() {
