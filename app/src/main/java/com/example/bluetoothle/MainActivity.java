@@ -14,24 +14,23 @@ import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
-import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.ParcelUuid;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
     private static final int MY_REQUEST_CODE = 1;
@@ -51,6 +50,16 @@ public class MainActivity extends AppCompatActivity {
                 PackageManager.PERMISSION_GRANTED;
     }
 
+    private void showToastBluetoothGattConnected(final BluetoothGatt gatt) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast toast = Toast.makeText(getApplicationContext(), "Connected to BluetoothGatt!", Toast.LENGTH_LONG);
+                toast.show();
+            }
+        });
+    }
+
     private void initFields() {
         scanResultsListView = findViewById(R.id.scanResultsListView);
         scanResultsList = new ArrayList<>();
@@ -59,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
         scanResultsListView.setAdapter(scanResultsArrayAdapter);
         scanResultsListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+            public void onItemClick(final AdapterView<?> adapterView, View view, int i, long l) {
                 MyScanResult item = (MyScanResult) adapterView.getItemAtPosition(i);
                 item.getBluetoothDevice().connectGatt(adapterView.getContext(), false, new BluetoothGattCallback() {
                     @Override
@@ -67,11 +76,13 @@ public class MainActivity extends AppCompatActivity {
                         super.onConnectionStateChange(gatt, status, newState);
                         if (status == BluetoothGatt.GATT_SUCCESS) {
                             if (newState == BluetoothProfile.STATE_CONNECTED) {
+                                showToastBluetoothGattConnected(gatt);
+
                                 List<BluetoothGattService> bluetoothGattServiceList = gatt.getServices();
                                 if (!bluetoothGattServiceList.isEmpty())
                                 {
                                     for (BluetoothGattService service: bluetoothGattServiceList) {
-                                        Log.i("printGattTable", "Service " + service.getUuid());
+                                        Log.i("printGattTable", "Service UUID " + service.getUuid());
                                     }
                                 }
                                 else Log.i("printGattTable", "No services found!");
@@ -94,6 +105,12 @@ public class MainActivity extends AppCompatActivity {
                 else {
                     Log.i("App", "Bluetooth adapter not found!");
                     System.exit(1);
+                }
+
+                if (!bluetoothAdapter.isEnabled()) {
+                    Intent enableBluetoothIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                    startActivityForResult(enableBluetoothIntent, MY_REQUEST_CODE);
+                    return;
                 }
 
                 if (bluetoothLeScanner != null) {
