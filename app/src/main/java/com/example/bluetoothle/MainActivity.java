@@ -7,7 +7,11 @@ import android.Manifest;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
@@ -20,6 +24,7 @@ import android.os.Bundle;
 import android.os.ParcelUuid;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
@@ -39,7 +44,6 @@ public class MainActivity extends AppCompatActivity {
     private static Button quitBtn = null;
     private static Button scanBtn = null;
     private static ListView scanResultsListView = null;
-
     private static ArrayList<MyScanResult> scanResultsList = new ArrayList<>();
 
     private boolean checkDevicePermission(String permission) {
@@ -48,6 +52,36 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initFields() {
+        scanResultsListView = findViewById(R.id.scanResultsListView);
+        scanResultsList = new ArrayList<>();
+        final ArrayAdapter<MyScanResult> scanResultsArrayAdapter =
+                new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, scanResultsList);
+        scanResultsListView.setAdapter(scanResultsArrayAdapter);
+        scanResultsListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                MyScanResult item = (MyScanResult) adapterView.getItemAtPosition(i);
+                item.getBluetoothDevice().connectGatt(adapterView.getContext(), false, new BluetoothGattCallback() {
+                    @Override
+                    public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+                        super.onConnectionStateChange(gatt, status, newState);
+                        if (status == BluetoothGatt.GATT_SUCCESS) {
+                            if (newState == BluetoothProfile.STATE_CONNECTED) {
+                                List<BluetoothGattService> bluetoothGattServiceList = gatt.getServices();
+                                if (!bluetoothGattServiceList.isEmpty())
+                                {
+                                    for (BluetoothGattService service: bluetoothGattServiceList) {
+                                        Log.i("printGattTable", "Service " + service.getUuid());
+                                    }
+                                }
+                                else Log.i("printGattTable", "No services found!");
+                            }
+                        }
+                    }
+                });
+            }
+        });
+
         scanBtn = findViewById(R.id.scanBtn);
         scanBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -64,16 +98,13 @@ public class MainActivity extends AppCompatActivity {
 
                 if (bluetoothLeScanner != null) {
                     Log.i("App", "Running bluetooth low energy scan!");
-                    scanResultsList = new ArrayList<>();
+                    scanResultsList.clear();
                     bluetoothLeScanner.startScan(new ScanCallback() {
                         // Handle scan results
                         public void onScanResult(int callbackType, ScanResult result) {
                             BluetoothDevice device = result.getDevice();
-                            scanResultsList.add(new MyScanResult(device.getAddress(), String.valueOf(result.getRssi()), device.getName(), device.getUuids()));
-                            MyScanResult[] scanResultsArr = scanResultsList.toArray(new MyScanResult[scanResultsList.size()]);
-                            ArrayAdapter<MyScanResult> scanResultsArrayAdapter =
-                                    new ArrayAdapter<>(view.getContext(), android.R.layout.simple_list_item_1, scanResultsArr);
-                            scanResultsListView.setAdapter(scanResultsArrayAdapter);
+                            scanResultsList.add(new MyScanResult(device.getAddress(), String.valueOf(result.getRssi()), device.getName(), device.getUuids(), device));
+                            scanResultsArrayAdapter.notifyDataSetChanged();
                         }
                     });
                 }
@@ -87,7 +118,6 @@ public class MainActivity extends AppCompatActivity {
                 System.exit(1);
             }
         });
-        scanResultsListView = findViewById(R.id.scanResultsListView);
     }
 
     @Override
