@@ -1,5 +1,6 @@
 package com.example.bluetoothle;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
@@ -9,6 +10,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
@@ -21,6 +23,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -40,10 +44,13 @@ public class MainActivity extends AppCompatActivity {
 
     private static BluetoothLeScanner bluetoothLeScanner;
 
+    private static boolean isScanning = false;
+
     private static Button quitBtn = null;
     private static Button scanBtn = null;
     private static ListView scanResultsListView = null;
     private static ArrayList<MyScanResult> scanResultsList = new ArrayList<>();
+    private static ArrayList<String> scanResultDeviceAddresses = new ArrayList<>();
 
     private boolean checkDevicePermission(String permission) {
         return ContextCompat.checkSelfPermission(this.getApplicationContext(), permission) ==
@@ -72,22 +79,36 @@ public class MainActivity extends AppCompatActivity {
                 MyScanResult item = (MyScanResult) adapterView.getItemAtPosition(i);
                 item.getBluetoothDevice().connectGatt(adapterView.getContext(), false, new BluetoothGattCallback() {
                     @Override
-                    public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+                    public void onConnectionStateChange(final BluetoothGatt gatt, int status, int newState) {
                         super.onConnectionStateChange(gatt, status, newState);
                         if (status == BluetoothGatt.GATT_SUCCESS) {
                             if (newState == BluetoothProfile.STATE_CONNECTED) {
                                 showToastBluetoothGattConnected(gatt);
 
-                                List<BluetoothGattService> bluetoothGattServiceList = gatt.getServices();
-                                if (!bluetoothGattServiceList.isEmpty())
-                                {
-                                    for (BluetoothGattService service: bluetoothGattServiceList) {
-                                        Log.i("printGattTable", "Service UUID " + service.getUuid());
+                                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        if (gatt != null) gatt.discoverServices();
                                     }
-                                }
-                                else Log.i("printGattTable", "No services found!");
+                                });
                             }
                         }
+                    }
+
+                    @Override
+                    public void onServicesDiscovered (BluetoothGatt gatt, int status) {
+                        List<BluetoothGattService> bluetoothGattServiceList = gatt.getServices();
+                        if (!bluetoothGattServiceList.isEmpty())
+                        {
+                            for (BluetoothGattService service: bluetoothGattServiceList) {
+                                List<BluetoothGattCharacteristic> bluetoothGattCharacteristicList = service.getCharacteristics();
+                                for (BluetoothGattCharacteristic characteristic: bluetoothGattCharacteristicList) {
+                                    Log.i("printGattTable", "Service " + service.getUuid().toString()
+                                            + " Characteristic: " + characteristic.toString());
+                                }
+                            }
+                        }
+                        else Log.i("printGattTable", "No services found!");
                     }
                 });
             }
@@ -114,16 +135,33 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 if (bluetoothLeScanner != null) {
-                    Log.i("App", "Running bluetooth low energy scan!");
-                    scanResultsList.clear();
-                    bluetoothLeScanner.startScan(new ScanCallback() {
-                        // Handle scan results
-                        public void onScanResult(int callbackType, ScanResult result) {
-                            BluetoothDevice device = result.getDevice();
-                            scanResultsList.add(new MyScanResult(device.getAddress(), String.valueOf(result.getRssi()), device.getName(), device.getUuids(), device));
-                            scanResultsArrayAdapter.notifyDataSetChanged();
-                        }
-                    });
+                    if (!isScanning) {
+                        Log.i("App", "Running bluetooth low energy scan!");
+                        isScanning = true;
+                        scanBtn.setText(R.string.stop_scan);
+                        scanResultsList.clear();
+                        scanResultDeviceAddresses.clear();
+
+                        bluetoothLeScanner.startScan(new ScanCallback() {
+                            // Handle scan results
+                            @RequiresApi(api = Build.VERSION_CODES.O)
+                            public void onScanResult(int callbackType, ScanResult result) {
+                                BluetoothDevice device = result.getDevice();
+                                String deviceAddress = device.getAddress();
+                                if (!scanResultDeviceAddresses.contains(deviceAddress)) {
+                                    scanResultDeviceAddresses.add(deviceAddress);
+                                    scanResultsList.add(new MyScanResult(deviceAddress, String.valueOf(result.getRssi()), device.getName(),
+                                            device.getUuids(), device, String.valueOf(result.getTxPower())));
+                                    scanResultsArrayAdapter.notifyDataSetChanged();
+                                }
+                            }
+                        });
+                    }
+                    else {
+                        bluetoothLeScanner.stopScan((ScanCallback) null);
+                        scanBtn.setText(R.string.start_scan);
+                        isScanning = false;
+                    }
                 }
                 else Log.i("App", "Can not get bluetooth low energy scanner!");
             }

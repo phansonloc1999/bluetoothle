@@ -4,8 +4,6 @@ import android.bluetooth.BluetoothDevice;
 import android.os.ParcelUuid;
 
 import java.io.Serializable;
-import java.util.List;
-import java.util.UUID;
 
 public class MyScanResult implements Serializable {
     private String address;
@@ -13,18 +11,20 @@ public class MyScanResult implements Serializable {
     private String deviceName;
     private ParcelUuid[] parcelUuids;
     private BluetoothDevice bluetoothDevice;
+    private String txPower;
 
-    public MyScanResult(String address, String rssi, String deviceName, ParcelUuid[] parcelUuids, BluetoothDevice bluetoothDevice) {
+    public MyScanResult(String address, String rssi, String deviceName, ParcelUuid[] parcelUuids, BluetoothDevice bluetoothDevice, String txPower) {
         this.address = address;
         this.rssi = rssi;
         this.deviceName = deviceName;
         this.parcelUuids = parcelUuids;
         this.bluetoothDevice = bluetoothDevice;
+        this.txPower = txPower;
     }
 
     @Override
     public String toString() {
-        return "Address: " + this.address + " RSSI: " + this.rssi + "\nDevice name: " + this.deviceName;
+        return "Address: " + this.address + " RSSI: " + this.rssi + "\nDevice name: " + this.deviceName + " TxPower: " + this.txPower  + "\n";
     }
 
     public String getAddress() {
