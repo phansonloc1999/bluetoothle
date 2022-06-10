@@ -58,16 +58,6 @@ public class MainActivity extends AppCompatActivity {
                 PackageManager.PERMISSION_GRANTED;
     }
 
-    private void showToastBluetoothGattConnected(final BluetoothGatt gatt) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast toast = Toast.makeText(getApplicationContext(), "Connected to BluetoothGatt!", Toast.LENGTH_LONG);
-                toast.show();
-            }
-        });
-    }
-
     private String bytesToHex(byte[] bytes) {
         String hex = "";
         for (int i = 0; i < bytes.length; i++) {
@@ -132,8 +122,6 @@ public class MainActivity extends AppCompatActivity {
                         super.onConnectionStateChange(gatt, status, newState);
                         if (status == BluetoothGatt.GATT_SUCCESS) {
                             if (newState == BluetoothProfile.STATE_CONNECTED) {
-                                showToastBluetoothGattConnected(gatt);
-
                                 new Handler(Looper.getMainLooper()).post(new Runnable() {
                                     @Override
                                     public void run() {
@@ -146,18 +134,25 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onServicesDiscovered (BluetoothGatt gatt, int status) {
+                        Intent myIntent = new Intent(getApplicationContext(), ShowServicesCharacteristicsActivity.class);
                         List<BluetoothGattService> bluetoothGattServiceList = gatt.getServices();
+                        myIntent.putExtra("SERVICE_COUNT", bluetoothGattServiceList.size());
                         if (!bluetoothGattServiceList.isEmpty())
                         {
+                            int i = 0;
                             for (BluetoothGattService service: bluetoothGattServiceList) {
                                 List<BluetoothGattCharacteristic> bluetoothGattCharacteristicList = service.getCharacteristics();
                                 for (BluetoothGattCharacteristic characteristic: bluetoothGattCharacteristicList) {
                                     Log.i("printGattTable", "Service " + service.getUuid().toString()
                                             + " Characteristic: " + characteristic.toString());
+                                    myIntent.putExtra("SERVICE_" + i, "UUID: " + service.getUuid().toString()
+                                            + "\nCharacteristic: " + characteristic.toString());
+                                    i++;
                                 }
                             }
                         }
                         else Log.i("printGattTable", "No services found!");
+                        startActivityForResult(myIntent, 0);
                     }
                 });
             }
