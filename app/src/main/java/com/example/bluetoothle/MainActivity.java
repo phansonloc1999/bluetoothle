@@ -130,6 +130,9 @@ public class MainActivity extends AppCompatActivity {
                                 });
                             }
                         }
+                        if (newState == BluetoothProfile.STATE_DISCONNECTED || status == BluetoothGatt.GATT_FAILURE) {
+                            gatt.close();
+                        }
                     }
 
                     @Override
@@ -185,6 +188,8 @@ public class MainActivity extends AppCompatActivity {
                         scanBtn.setText(R.string.stop_scan);
                         scanResultsList.clear();
                         scanResultDeviceAddresses.clear();
+                        scanResultsArrayAdapter.clear();
+                        scanResultsArrayAdapter.notifyDataSetChanged();
 
                         bluetoothLeScanner.startScan(new ScanCallback() {
                             // Handle scan results
