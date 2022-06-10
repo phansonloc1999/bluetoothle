@@ -31,8 +31,8 @@ public class MyScanResult implements Serializable {
         String result = "";
         result += "Address: " + this.address + " RSSI: " + this.rssi + "\nDevice name: " + this.deviceName + " TxPower: " + this.txPower
                 + "\n";
-        if (deviceName.equals("iBeacon")) {
-            result += " UUID: " + this.uuid + " Major: " + this.major + " Minor: " + this.minor;
+        if (deviceName.indexOf("iBeacon") != -1) {
+            result += "UUID: " + this.uuid + "\nMajor: " + this.major + " Minor: " + this.minor;
         }
         return result;
     }

@@ -204,9 +204,9 @@ public class MainActivity extends AppCompatActivity {
                                     if (findBeaconPattern(result.getScanRecord().getBytes(), beaconInfo))
                                     {
                                         scanResultsArrayAdapter.add(new MyScanResult(deviceAddress, String.valueOf(result.getRssi()),
-                                                "iBeacon", beaconInfo[0], device, String.valueOf(result.getTxPower()), beaconInfo[1], beaconInfo[2]));
+                                                device.getName() + "(iBeacon)", beaconInfo[0], device, String.valueOf(result.getTxPower()), beaconInfo[1], beaconInfo[2]));
                                     }
-                                    else scanResultsList.add(new MyScanResult(deviceAddress, String.valueOf(result.getRssi()), "Bluetooth",
+                                    else scanResultsList.add(new MyScanResult(deviceAddress, String.valueOf(result.getRssi()), device.getName() + "(Bluetooth)",
                                             "", device, String.valueOf(result.getTxPower()), "", ""));
                                     scanResultsArrayAdapter.notifyDataSetChanged();
                                 }
