@@ -16,6 +16,7 @@ import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanRecord;
 import android.bluetooth.le.ScanResult;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -65,6 +66,54 @@ public class MainActivity extends AppCompatActivity {
                 toast.show();
             }
         });
+    }
+
+    private String bytesToHex(byte[] bytes) {
+        String hex = "";
+        for (int i = 0; i < bytes.length; i++) {
+            hex += String.format("%02X", bytes[i]);
+        }
+        return hex;
+    }
+
+    // Reference: https://github.com/Jaosrikate/iBeacon-Android
+    private boolean findBeaconPattern(byte[] scanRecord, String[] beaconInfo) {
+        int startByte = 2;
+        boolean patternFound = false;
+        while (startByte <= 5) {
+            if (((int) scanRecord[startByte + 2] & 0xff) == 0x02 && //Identifies an iBeacon
+                    ((int) scanRecord[startByte + 3] & 0xff) == 0x15) { //Identifies correct data length
+                patternFound = true;
+                break;
+            }
+            startByte++;
+        }
+
+        if (patternFound) {
+            //Convert to hex String
+            byte[] uuidBytes = new byte[16];
+            System.arraycopy(scanRecord, startByte + 4, uuidBytes, 0, 16);
+            String hexString = bytesToHex(uuidBytes);
+
+            //UUID detection
+            String uuid = hexString.substring(0, 8) + "-" +
+                    hexString.substring(8, 12) + "-" +
+                    hexString.substring(12, 16) + "-" +
+                    hexString.substring(16, 20) + "-" +
+                    hexString.substring(20, 32);
+
+            // major
+            final int major = (scanRecord[startByte + 20] & 0xff) * 0x100 + (scanRecord[startByte + 21] & 0xff);
+
+            // minor
+            final int minor = (scanRecord[startByte + 22] & 0xff) * 0x100 + (scanRecord[startByte + 23] & 0xff);
+
+            Log.i("findBeaconPattern", "UUID: " + uuid + "\\nmajor: " + major + "\\nminor" + minor);
+            beaconInfo[0] = uuid;
+            beaconInfo[1] = String.valueOf(major);
+            beaconInfo[2] = String.valueOf(minor);
+        }
+        return patternFound;
     }
 
     private void initFields() {
@@ -148,10 +197,17 @@ public class MainActivity extends AppCompatActivity {
                             public void onScanResult(int callbackType, ScanResult result) {
                                 BluetoothDevice device = result.getDevice();
                                 String deviceAddress = device.getAddress();
+                                String[] beaconInfo = new String[] { "", "", "" };
+
                                 if (!scanResultDeviceAddresses.contains(deviceAddress)) {
                                     scanResultDeviceAddresses.add(deviceAddress);
-                                    scanResultsList.add(new MyScanResult(deviceAddress, String.valueOf(result.getRssi()), device.getName(),
-                                            device.getUuids(), device, String.valueOf(result.getTxPower())));
+                                    if (findBeaconPattern(result.getScanRecord().getBytes(), beaconInfo))
+                                    {
+                                        scanResultsArrayAdapter.add(new MyScanResult(deviceAddress, String.valueOf(result.getRssi()),
+                                                "iBeacon", beaconInfo[0], device, String.valueOf(result.getTxPower()), beaconInfo[1], beaconInfo[2]));
+                                    }
+                                    else scanResultsList.add(new MyScanResult(deviceAddress, String.valueOf(result.getRssi()), "Bluetooth",
+                                            "", device, String.valueOf(result.getTxPower()), "", ""));
                                     scanResultsArrayAdapter.notifyDataSetChanged();
                                 }
                             }
