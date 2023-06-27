@@ -1,2 +1,2 @@
 # bluetoothle
-Ứng dụng Android hỗ trợ Bluetooth Low Energy. 
+Ứng dụng Android hỗ trợ kết nối Bluetooth Low Energy. 
